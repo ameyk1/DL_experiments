@@ -6,6 +6,7 @@ import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
 import numpy as np
+import matplotlib.pyplot as plt
 from nn_architectures import alexnet
 import argparse
 
@@ -52,28 +53,37 @@ def main ():
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     # CIFAR Data Download and data augmentation and transform
-    train_transform = transforms.Compose([transforms.RandomHorizontalFlip(), transforms.ToTensor()])
+    train_transform = transforms.Compose([
+        transforms.RandomHorizontalFlip(), 
+        transforms.RandomCrop(32, padding=4), 
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
-    val_transform = transforms.Compose([transforms.ToTensor()])
+    val_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
-    train_dataset = datasets.CIFAR100(root='./CIFA100data',train=True, transform=train_transform, download=True)
+    train_dataset = datasets.CIFAR10(root='./CIFA10data',train=True, transform=train_transform, download=True)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True)
-    test_dataset = datasets.CIFAR100(root='./CIFAR100data',train=False, transform=val_transform, download=True)
+    test_dataset = datasets.CIFAR10(root='./CIFAR10data',train=False, transform=val_transform, download=True)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size= BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True)
     
     # Get Model
     model = alexnet.alexnet(in_channels=args.in_channels, num_classes=n_classes)
     print(model)
     model = model.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=0.0001, weight_decay=1e-8 )
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-8 )
     #optimizer = optim.Adam(model.parameters(), lr=0.001)
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[150, 300, 750], gamma=0.5)
-    test_loss = 0.0
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[150,600], gamma=0.5)
     test_correct = 0.0
     total = 0.0
+    train_loss_values = []
+    test_loss_values = []
+
     for epoch in range(NUM_EPOCHS):
         model.train()
         scheduler.step(epoch)
+        train_running_loss = 0.0
         for images, labels in iter(train_loader):
             images = images.to(device)
             labels = labels.to(device)
@@ -81,27 +91,35 @@ def main ():
             outputs = model(images)
             loss = F.cross_entropy(outputs, labels)
             loss.backward()
+            train_running_loss += loss.item()
             optimizer.step()
-        if epoch%10 == 0:
-            model.eval()
-            test_error_count = 0.0
-            for images, labels in iter(test_loader):
-                images = images.to(device)
-                labels = labels.to(device)
-                outputs = model(images)
-                loss = F.cross_entropy(outputs, labels)
-                test_loss += loss.item()
-                prediction = torch.max(outputs, 1)
-                total += labels.size(0)
-                test_correct += float(torch.sum(labels == outputs.argmax(1)))
 
-            test_accuracy = (test_correct/total)*100
-            print('Epoch = %d: Test Accuracy = %f %%' % (epoch, test_accuracy))
+        train_loss_values.append(train_running_loss / len(train_dataset))
         
-            if test_accuracy > best_accuracy:
-                torch.save(model.state_dict(), "{}.pth".format(BEST_MODEL_PATH))
-                best_accuracy = test_accuracy
+        model.eval()
+        test_running_loss = 0.0
+        for images, labels in iter(test_loader):
+            images = images.to(device)
+            labels = labels.to(device)
+            outputs = model(images)
+            loss = F.cross_entropy(outputs, labels)
+            test_running_loss += loss.item()
+            prediction = torch.max(outputs, 1)
+            total += labels.size(0)
+            test_correct += float(torch.sum(labels == outputs.argmax(1)))
 
+        test_loss_values.append(test_running_loss / len(test_dataset))
+        test_accuracy = (test_correct/total)*100
+        if epoch%10 == 0:
+            print('Epoch = %d: Test Accuracy = %f %%' % (epoch, test_accuracy))
+    
+        if test_accuracy > best_accuracy:
+            torch.save(model.state_dict(), "{}.pth".format(BEST_MODEL_PATH))
+            best_accuracy = test_accuracy
 
+    plt.plot(train_loss_values)
+    plt.plot(test_loss_values)
+    plt.legend(['Train Loss', 'Test Loss'], loc='upper left')
+    plt.show()
 if __name__ == "__main__":
     main()
