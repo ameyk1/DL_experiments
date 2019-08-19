@@ -34,6 +34,7 @@ class alexnet(nn.Module):
         for i in range(5):
             layers_conv+=[
                 nn.Conv2d(in_channels_conv, conv_channel_nums[i], kernel_size=conv_kernel_sizes[i], stride=conv_strides[i], padding=conv_padding[i]),
+		nn.BatchNorm2d(conv_channel_nums[i]),
                 nn.ReLU(inplace=True)
             ]
             if not (i==2 or i==3):
