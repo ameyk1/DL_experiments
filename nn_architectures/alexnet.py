@@ -1,8 +1,6 @@
 import torch 
 import torch.nn as nn
 
-NUM_CLASSES = 10
-
 conv_channel_nums = [64,192,384,256,256]
 #conv_kernel_sizes = [11,5,3,3,3] # Original AlexNet Config
 conv_kernel_sizes = [3,3,3,3,3]
@@ -46,7 +44,7 @@ class alexnet(nn.Module):
     def _init_fc(self):
         layers_fc = []
         in_channels_fc = 256*2*2
-        for i in range(2):
+        for i in range(1):
             layers_fc+=[
                 nn.Dropout(),
                 nn.Linear(in_channels_fc, fc_channel_nums[i]),
@@ -54,6 +52,4 @@ class alexnet(nn.Module):
             ]
             in_channels_fc = fc_channel_nums[i]
         layers_fc+=[nn.Linear(fc_channel_nums[1], self.num_classes)]
-        return nn.Sequential(*layers_fc)
-               
-        
+        return nn.Sequential(*layers_fc)       

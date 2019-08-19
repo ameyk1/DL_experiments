@@ -72,9 +72,10 @@ def main ():
     model = alexnet.alexnet(in_channels=args.in_channels, num_classes=n_classes)
     print(model)
     model = model.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-8 )
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4 )
     #optimizer = optim.Adam(model.parameters(), lr=0.001)
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[150,600], gamma=0.5)
+    #scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=25)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[300,700,1000],gamma=0.1)
     test_correct = 0.0
     total = 0.0
     train_loss_values = []
@@ -117,9 +118,16 @@ def main ():
             torch.save(model.state_dict(), "{}.pth".format(BEST_MODEL_PATH))
             best_accuracy = test_accuracy
 
-    plt.plot(train_loss_values)
-    plt.plot(test_loss_values)
-    plt.legend(['Train Loss', 'Test Loss'], loc='upper left')
-    plt.show()
+    with open('train_loss_values.txt', 'w') as f:
+        for item in train_loss_values:
+            f.write("%s\n" % item)
+    with open('test_loss_values.txt', 'w') as f:
+        for item in test_loss_values:
+            f.write("%s\n" % item)
+              
+    # plt.plot(train_loss_values)
+    # plt.plot(test_loss_values)
+    # plt.legend(['Train Loss', 'Test Loss'], loc='upper left')
+    # plt.show()
 if __name__ == "__main__":
     main()
