@@ -35,7 +35,7 @@ class alexnet(nn.Module):
             layers_conv+=[
                 nn.Conv2d(in_channels_conv, conv_channel_nums[i], kernel_size=conv_kernel_sizes[i], stride=conv_strides[i], padding=conv_padding[i]),
 		nn.BatchNorm2d(conv_channel_nums[i]),
-                nn.ReLU(inplace=True)
+                nn.RReLU(0.15,0.25,inplace=True)
             ]
             if not (i==2 or i==3):
                 layers_conv+=[nn.MaxPool2d(kernel_size=maxpool_kernel_size, stride=maxpool_stride)]
@@ -45,11 +45,12 @@ class alexnet(nn.Module):
     def _init_fc(self):
         layers_fc = []
         in_channels_fc = 256*2*2
-        for i in range(1):
+        for i in range(2):
             layers_fc+=[
-                nn.Dropout(),
+                nn.Dropout(p=0.85),
                 nn.Linear(in_channels_fc, fc_channel_nums[i]),
-                nn.ReLU(inplace=True)
+		nn.BatchNorm1d(fc_channel_nums[i]),
+                nn.RReLU(0.1,0.3,inplace=True)
             ]
             in_channels_fc = fc_channel_nums[i]
         layers_fc+=[nn.Linear(fc_channel_nums[1], self.num_classes)]

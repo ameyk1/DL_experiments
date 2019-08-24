@@ -7,7 +7,7 @@ import torchvision.transforms as transforms
 
 import numpy as np
 import matplotlib.pyplot as plt
-from nn_architectures import alexnet
+from nn_architectures import alexnet, overfeat
 import argparse
 
 def parse_args():
@@ -70,6 +70,7 @@ def main ():
     
     # Get Model
     model = alexnet.alexnet(in_channels=args.in_channels, num_classes=n_classes)
+    #model = overfeat.overfeat(in_channels=args.in_channels, num_classes=n_classes)
     print(model)
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4 )
@@ -80,7 +81,7 @@ def main ():
     total = 0.0
     train_loss_values = []
     test_loss_values = []
-
+    accuracy_val =[]
     for epoch in range(NUM_EPOCHS):
         model.train()
         scheduler.step(epoch)
@@ -113,6 +114,7 @@ def main ():
         test_accuracy = (test_correct/total)*100
         if epoch%10 == 0:
             print('Epoch = %d: Test Accuracy = %f %%' % (epoch, test_accuracy))
+            accuracy_val.append(test_accuracy)
     
         if test_accuracy > best_accuracy:
             torch.save(model.state_dict(), "{}.pth".format(BEST_MODEL_PATH))
@@ -123,6 +125,9 @@ def main ():
             f.write("%s\n" % item)
     with open('test_loss_values.txt', 'w') as f:
         for item in test_loss_values:
+            f.write("%s\n" % item)
+    with open('accuracy_val.txt', 'w') as f:
+        for item in accuracy_val:
             f.write("%s\n" % item)
               
     # plt.plot(train_loss_values)
